@@ -1,4 +1,12 @@
+# 此 py 文件描述了 EasyRemember 的基本工作原理，但不包含机器学习内容
+
 import time
+import torch
+
+# 超参数设置
+length_of_memory = 10  # 对于一张卡片来说，程序只会记住最后 length_of_memory 个数据，这也是输入长度
+lr = 0.03  # 学习率
+num_epochs = 3  # 迭代次数
 
 
 class Card:
@@ -11,7 +19,7 @@ class Card:
         self.expect_show_up = 0  # 单位为秒
 
     def show_front(self):
-        print('\n\n\n\n\n\n')
+        print('\n\n\n\n')
         print(self.front)
         self.time = time.time()
         input('\n\n按回车出示背面...')
@@ -27,11 +35,16 @@ class Card:
         except ValueError:
             print('输入不正确，请重新输入！')
             self.react = int(input('请选择难易程度:\n1:不会, 2: 困难, 3: 记得, 4: 熟练\n'))
-        self.expect_show_up = time.time() + self.react * 60
+        self.calculate_expect_show_up()
         self.history.append([self.time, self.react, self.expect_show_up])
-        if len(self.history) > 10:
+        if len(self.history) > length_of_memory:
             self.history.pop(0)  # 防止过长
-        print('\n\n\n\n\n\n')
+        print('此卡片将在', self.expect_show_up - time.time(), '后出现。\n\n\n')
+
+    def calculate_expect_show_up(self):
+        self.expect_show_up = time.time() + self.react * 60 - self.time * 6
+        w = torch.normal(0, 0.01, size=(length_of_memory, 1), requires_grad=True)
+        b = torch.zeros(1, requires_grad=True)
 
     def edit(self):
         choice = input('1: 修改正面\n2: 修改反面')
@@ -43,29 +56,51 @@ class Card:
             self.back = input()
 
 
-try:
-    f = open('card.txt', 'r')
-except FileNotFoundError:
-    open('card.txt', 'w')
-    f = open('card.txt', 'r')
+def read_card(card_list):
+    try:
+        f = open('card.txt', 'r', encoding='utf-8')
+    except FileNotFoundError:
+        open('card.txt', 'w')
+        f = open('card.txt', 'r', encoding='utf-8')
 
-card_list = []
-lines = f.readline()
-counter = 0
-# 初始化测试卡片
-while lines:
-    parameter = lines[counter].split(",")
-    print(lines)
-    card_list.append(Card())
-    card_list[counter].front = parameter[0]
-    card_list[counter].back = parameter[1]
-    card_list[counter].expect_show_up = parameter[2]
-    for j_counter in range(len(lines[counter])):
-        card_list[counter].history[j_counter // 3][j_counter % 3] = parameter[3+j_counter]
     lines = f.readline()
-    counter += 1
-f.close()
+    counter = 0
+    # 初始化测试卡片
+    while lines:
+        parameter = lines.split(",")
+        print(lines)
+        card_list.append(Card())
+        card_list[counter].front = parameter[0]
+        card_list[counter].back = parameter[1]
+        card_list[counter].expect_show_up = float(parameter[2])
+        for j_counter in range(len(parameter) - 3):
+            card_list[counter].history.append(parameter[3 + j_counter])
+        lines = f.readline()
+        counter += 1
+    f.close()
+
+
+def save_card(card_list):
+    f = open('card1.txt', 'w', encoding='utf-8')
+    for card in card_list:
+        f.write(card.front)
+        f.write(',')
+        f.write(card.back)
+        for i in card.history:
+            f.write(',')
+            f.write(i)
+        f.write('\n')
+
+
+Card_List = []
+read_card(Card_List)
 while True:
-    card_list = sorted(card_list, key=lambda x: x.expect_show_up)
-    card_list[0].show_front()
-    card_list[0].show_back()
+
+    Card_List = sorted(Card_List, key=lambda x: x.expect_show_up)
+    if Card_List[0].expect_show_up - time.time() <= 3600:  # 最近的卡片将在一小时内出现
+        Card_List[0].show_front()
+        Card_List[0].show_back()
+    else:
+        print("未来 1 小时内没有到期的卡片，程序保存并退出")
+        save_card(Card_List)
+        break

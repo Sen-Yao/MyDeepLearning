@@ -15,4 +15,5 @@ def synthetic_data():
     proficiency_score = torch.normal(50, 50, (example_num, 1))
     synthetic_sequential = []
     for counter in range(example_num):
-        synthetic_sequential.append([random.randint(1, 4), random.randint(1, 1000), 0])
+        synthetic_sequential.append([random.randint(1, 4), random.randint(1, 10000), 0])
+

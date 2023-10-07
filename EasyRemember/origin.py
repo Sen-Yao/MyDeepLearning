@@ -10,8 +10,9 @@ import torch
 example_num = 3
 
 
-def synthetic_data():
-    # 对于记忆数据模拟，我们首先生成一个熟练度猜测，这是一个 (50,50) 的正态分布。
+def synthetic_data(length_of_memory):
+    # 此函数生成一个长度为 2 * length_of_memory + 2 的 list，模拟真人的反馈。
+    # 我们首先生成一个熟练度猜测，这是一个 (50,50) 的正态分布。
     proficiency_score = torch.normal(50, 50, (example_num, 1))
     synthetic_sequential = []
     for counter in range(example_num):

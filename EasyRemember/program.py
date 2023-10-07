@@ -2,11 +2,15 @@
 
 import time
 import torch
+from torch import nn
 
 # 超参数设置
-length_of_memory = 10  # 对于一张卡片来说，程序只会记住最后 length_of_memory 个数据，这也是输入长度
+length_of_memory = 5  # 对于一张卡片来说，程序只会记住最后 length_of_memory 次卡片的出现。
 lr = 0.03  # 学习率
 num_epochs = 3  # 迭代次数
+net = nn.Sequential(nn.Linear(length_of_memory, 1))
+loss = nn.MSELoss()
+trainer = torch.optim.SGD(net.parameters(), lr=lr)
 
 
 class Card:
@@ -46,6 +50,7 @@ class Card:
         w = torch.normal(0, 0.01, size=(length_of_memory, 1), requires_grad=True)
         b = torch.zeros(1, requires_grad=True)
 
+
     def edit(self):
         choice = input('1: 修改正面\n2: 修改反面')
         if choice == '1':
@@ -73,8 +78,10 @@ def read_card(card_list):
         card_list[counter].front = parameter[0]
         card_list[counter].back = parameter[1]
         card_list[counter].expect_show_up = float(parameter[2])
-        for j_counter in range(len(parameter) - 3):
-            card_list[counter].history.append(parameter[3 + j_counter])
+        for j_counter in range((len(parameter) - 3) / 3):
+            card_list[counter].history[0].append(parameter[3 + 3 * j_counter])
+            card_list[counter].history[1].append(parameter[4 + 3 * j_counter])
+            card_list[counter].history[2].append(parameter[5 + 3 * j_counter])
         lines = f.readline()
         counter += 1
     f.close()
@@ -95,7 +102,6 @@ def save_card(card_list):
 Card_List = []
 read_card(Card_List)
 while True:
-
     Card_List = sorted(Card_List, key=lambda x: x.expect_show_up)
     if Card_List[0].expect_show_up - time.time() <= 3600:  # 最近的卡片将在一小时内出现
         Card_List[0].show_front()
